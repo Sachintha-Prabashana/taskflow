@@ -1,132 +1,158 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# TaskFlow Backend API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Production-ready REST API built with **NestJS 12**, **Prisma 7**, and **PostgreSQL**, implementing strict Domain/Repository separation, standardized response envelopes, and fail-fast environment validation.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## 🏛️ Architecture & Design Patterns
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+The backend follows clean layered architecture principles to ensure testability, maintainability, and loose coupling:
 
-## Project setup
-
-```bash
-$ npm install
+```
+src/
+├── common/                   # Cross-cutting concerns
+│   ├── constants/            # Enum definitions & Task status constants
+│   ├── decorators/           # Custom decorators (@ResponseMessage)
+│   ├── filters/              # Global HttpExceptionFilter (Standardized RFC error envelope)
+│   └── interceptors/         # Global TransformInterceptor (Standardized success envelope)
+├── config/                   # Fail-fast environment validation via class-validator
+├── prisma/                   # PrismaService with PostgreSQL Pool driver adapter
+├── modules/                  # Application feature modules
+│   └── tasks/                # Tasks Domain Module
+│       ├── dto/
+│       │   ├── requests/     # CreateTaskDto, UpdateTaskDto, QueryTaskDto
+│       │   └── responses/    # TaskResponseDto (exposes clean domain contracts)
+│       ├── tasks.controller.ts # Action-oriented HTTP route handlers (/api/v1/tasks)
+│       ├── tasks.service.ts  # Domain business logic & 404 entity verification
+│       ├── tasks.repository.ts # Query-oriented database access layer via Prisma
+│       └── tasks.module.ts   # Module declaration & dependency injection wiring
+├── server.ts                 # Application factory (CORS, Pipes, Global Prefix, Interceptors)
+└── main.ts                   # Lifecycle runner and bootstrap entrypoint
 ```
 
-## Compile and run the project
+### Layer Responsibilities
+1. **Controller Layer (`tasks.controller.ts`)**:
+   - Maps HTTP verbs to action-oriented methods (`createTask`, `getTasks`, `getTaskById`, `updateTask`, `deleteTask`).
+   - Applies status codes (`201 Created` for POST, `200 OK` for GET/PATCH/DELETE).
+   - Enforces DTO validation pipes.
+2. **Service Layer (`tasks.service.ts`)**:
+   - Contains pure business logic.
+   - Verifies resource existence and throws `NotFoundException` when a task does not exist.
+   - Maps database entities to `TaskResponseDto` instances.
+3. **Repository Layer (`tasks.repository.ts`)**:
+   - Contains pure database access queries (`insert`, `findMany`, `findById`, `updateById`, `deleteById`).
+   - Shields the service layer from direct ORM implementation details.
+4. **Prisma 7 Runtime (`prisma.service.ts` & `prisma.config.ts`)**:
+   - Uses `@prisma/adapter-pg` with `pg.Pool` for native connection pooling.
+   - Database URL is decoupled from `schema.prisma` and configured centrally via `prisma.config.ts`.
 
+---
+
+## ⚙️ Environment Variables
+
+Copy the example file to `.env`:
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cp .env.example .env
 ```
 
-## Run tests
+| Variable | Type | Default | Description |
+|---|---|---|---|
+| `NODE_ENV` | `string` | `development` | Application mode (`development`, `production`, `test`) |
+| `PORT` | `number` | `5000` | Port on which the HTTP server listens |
+| `DATABASE_URL` | `string` | *Required* | PostgreSQL connection string |
+| `CORS_ORIGIN` | `string` | `http://localhost:3000` | Allowed origin(s) for CORS. Can be comma-separated |
 
+> **Fail-Fast Validation**: On bootstrap, `src/config/env.validation.ts` validates all environment variables using `class-validator`. If any required variable is missing or malformed, the process exits immediately with a descriptive error.
+
+---
+
+## 📦 Getting Started
+
+### Prerequisites
+- **Node.js**: `v24.x` (or `v22+` via NVM)
+- **Package Manager**: `npm` (`v10+` / `v11+`)
+- **PostgreSQL**: `v16+`
+
+### 1. Install Dependencies
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm install
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
+### 2. Database Migrations
+Ensure PostgreSQL is running, then generate the Prisma client and apply migrations:
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+# Generate Prisma Client to prisma/generated/client
+npm run prisma:generate
+
+# Apply pending database migrations
+npm run prisma:migrate:dev
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Observability
-
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
-
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
-
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
-
-To add it to this project, run this and approve the code it prints at [observe.nestjs.com/link](https://observe.nestjs.com/link) - signing up for free if you have no account:
-
+### 3. Start Development Server
 ```bash
-$ npx @nestjs/observe link
+npm run start:dev
 ```
+The server will start at: `http://localhost:5000/api/v1`.
 
-It installs `@nestjs/observe`, wires it into `AppModule` and `main.ts`, and writes the app key and secret into `.env`, which every `nest start` script (`start`, `start:dev`, `start:debug`) then loads. In production, set `OBSERVE_APP_KEY` and `OBSERVE_APP_SECRET` in the environment instead.
+---
 
-Or do it by hand:
+## 📡 REST API Specification
 
-```bash
-$ npm install @nestjs/observe
-```
+Global prefix: `/api/v1`
 
-Then follow the [setup guide](https://docs.nestjs.com/observability/sdk) - it takes a single import and an app key.
+### 1. Create Task
+- **Endpoint**: `POST /api/v1/tasks`
+- **Status**: `201 Created`
+- **Request Body**:
+  ```json
+  {
+    "title": "Design Database Schema",
+    "description": "Create PostgreSQL tables using Prisma",
+    "status": "IN_PROGRESS",
+    "dueDate": "2026-11-25T15:00:00.000Z"
+  }
+  ```
+- **Validation**:
+  - `title`: String, required, non-empty.
+  - `description`: String, optional.
+  - `status`: String, optional, must be `TODO`, `IN_PROGRESS`, or `DONE` (defaults to `TODO`).
+  - `dueDate`: ISO date string, optional.
 
-The free plan needs no payment details and covers 300,000 events a month. You can also browse the [live demo](https://www.observe-demo.nestjs.com/dashboard) first - the whole dashboard over a busy service's data, with nothing to install.
+### 2. Get All Tasks
+- **Endpoint**: `GET /api/v1/tasks`
+- **Status**: `200 OK`
+- **Query Parameters**:
+  - `status`: Optional (`TODO`, `IN_PROGRESS`, `DONE`).
+  - `sortBy`: Optional (`dueDate`, `createdAt`, `title`, `id`. Default: `createdAt`).
+  - `order`: Optional (`asc`, `desc`. Default: `desc`).
 
-## Resources
+### 3. Get Single Task by ID
+- **Endpoint**: `GET /api/v1/tasks/:id`
+- **Status**: `200 OK`
+- Returns `404 Not Found` if the task does not exist.
 
-Check out a few resources that may come in handy when working with NestJS:
+### 4. Update Task
+- **Endpoint**: `PATCH /api/v1/tasks/:id`
+- **Status**: `200 OK`
+- **Request Body**: Partial `CreateTaskDto` fields.
+- Returns `404 Not Found` if the task does not exist.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observe](https://observe.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### 5. Delete Task
+- **Endpoint**: `DELETE /api/v1/tasks/:id`
+- **Status**: `200 OK`
+- Returns `404 Not Found` if the task does not exist.
 
-## Support
+---
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## 📜 Available NPM Scripts
 
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+| Command | Description |
+|---|---|
+| `npm run start:dev` | Start the NestJS application in watch mode |
+| `npm run build` | Compile the TypeScript application into `/dist` |
+| `npm run start:prod` | Run the compiled production application (`node dist/main.js`) |
+| `npm run prisma:generate` | Generate the Prisma Client from schema |
+| `npm run prisma:migrate:dev` | Apply Prisma migrations in development |
+| `npm run prisma:migrate:deploy` | Apply migrations in production environments / Docker |
+| `npm run prisma:studio` | Open Prisma Studio GUI in browser to inspect database |
+| `npm run lint` | Run code linter |
