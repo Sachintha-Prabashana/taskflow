@@ -4,7 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
-  useState,
+  useSyncExternalStore,
   type ButtonHTMLAttributes,
   type HTMLAttributes,
   type ReactNode,
@@ -34,6 +34,8 @@ export function AlertDialog({ open, onOpenChange, children }: AlertDialogProps) 
   )
 }
 
+const emptySubscribe = () => () => {}
+
 export function AlertDialogContent({
   className,
   children,
@@ -42,11 +44,11 @@ export function AlertDialogContent({
   children: ReactNode
 }) {
   const context = useContext(AlertDialogContext)
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  )
 
   useEffect(() => {
     if (!context?.open) return
