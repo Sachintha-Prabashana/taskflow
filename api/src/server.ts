@@ -9,14 +9,14 @@ export async function createServer(): Promise<INestApplication> {
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
-  const corsOrigin = configService.get<string>(
-    'CORS_ORIGIN',
-    'http://localhost:3000',
-  );
+  const corsOrigin = configService.get<string>('CORS_ORIGIN');
+  const origin = corsOrigin?.includes(',')
+    ? corsOrigin.split(',').map((o) => o.trim())
+    : corsOrigin;
 
   // Configure CORS
   app.enableCors({
-    origin: corsOrigin,
+    origin,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
