@@ -6,8 +6,8 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { TASK_STATUSES } from '../../../common/constants/task-status.constant';
-import type { TaskStatus } from '../../../common/constants/task-status.constant';
+import { TASK_STATUSES } from '../../../../common/constants/task-status.constant';
+import type { TaskStatus } from '../../../../common/constants/task-status.constant';
 
 export class CreateTaskDto {
   @IsString({ message: 'title must be a string' })

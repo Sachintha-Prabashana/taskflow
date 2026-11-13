@@ -1,6 +1,6 @@
 import { IsIn, IsOptional } from 'class-validator';
-import { TASK_STATUSES } from '../../../common/constants/task-status.constant';
-import type { TaskStatus } from '../../../common/constants/task-status.constant';
+import { TASK_STATUSES } from '../../../../common/constants/task-status.constant';
+import type { TaskStatus } from '../../../../common/constants/task-status.constant';
 
 export const SORT_FIELDS = ['dueDate', 'createdAt', 'title', 'id'] as const;
 export type SortField = (typeof SORT_FIELDS)[number];

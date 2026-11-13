@@ -11,7 +11,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ResponseMessage } from '../common/decorators/response-message.decorator';
+import { ResponseMessage } from '../../common/decorators/response-message.decorator';
 import { CreateTaskDto } from './dto/requests/create-task.dto';
 import { QueryTaskDto } from './dto/requests/query-task.dto';
 import { UpdateTaskDto } from './dto/requests/update-task.dto';
