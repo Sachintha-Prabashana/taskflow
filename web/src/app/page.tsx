@@ -1,6 +1,5 @@
 "use client"
 
-import * as React from "react"
 import { AlertCircle, CheckSquare, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TaskDeleteDialog } from "@/components/tasks/task-delete-dialog"
